@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>🐟 大肥鱼 · 游啊游</title>
+<meta name="description" content="一条大肥鱼在深海里游啊游">
+<meta property="og:title" content="🐟 大肥鱼">
+<meta property="og:description" content="点一下水里，鱼会游过去">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐟</text></svg>">
+<style>
+  :root{
+    --deep:#031a33;
+    --fish-hi:#ffd79a;
+    --fish-mid:#ffb347;
+    --fish-lo:#ef7d1a;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  html,body{height:100%;overflow:hidden;background:var(--deep)}
+  body{font-family:"PingFang SC","Microsoft YaHei",system-ui,-apple-system,sans-serif}
+
+  .ocean{
+    position:fixed;inset:0;
+    background:linear-gradient(180deg,#0a6ea8 0%,#0b3b63 38%,#062a4a 68%,#031a33 100%);
+    overflow:hidden;cursor:crosshair;
+  }
+
+  /* 水面光带 */
+  .surface{
+    position:absolute;top:0;left:0;right:0;height:70px;
+    background:linear-gradient(180deg,rgba(160,235,255,.55),rgba(160,235,255,0));
+    filter:blur(6px);animation:surface 6s ease-in-out infinite;
+  }
+  @keyframes surface{0%,100%{opacity:.75;transform:translateY(0)}50%{opacity:1;transform:translateY(6px)}}
+
+  /* 光柱 */
+  .rays{position:absolute;inset:0;pointer-events:none;mix-blend-mode:screen}
+  .ray{
+    position:absolute;top:-10%;width:120px;height:130%;
+    background:linear-gradient(180deg,rgba(150,230,255,.5),rgba(150,230,255,0));
+    filter:blur(18px);transform-origin:top center;animation:ray 9s ease-in-out infinite;
+  }
+  .ray:nth-child(1){left:8%;transform:rotate(9deg)}
+  .ray:nth-child(2){left:32%;width:80px;animation-delay:-2s;transform:rotate(-6deg)}
+  .ray:nth-child(3){left:58%;width:150px;animation-delay:-4s;transform:rotate(12deg)}
+  .ray:nth-child(4){left:79%;width:90px;animation-delay:-6s;transform:rotate(-9deg)}
+  @keyframes ray{0%,100%{opacity:.25}50%{opacity:.6}}
+
+  /* 气泡 */
+  .bubble{
+    position:absolute;bottom:-40px;border-radius:50%;pointer-events:none;
+    background:radial-gradient(circle at 32% 30%,rgba(255,255,255,.9),rgba(180,235,255,.35) 45%,rgba(120,200,255,.12) 70%);
+    border:1px solid rgba(200,240,255,.4);
+    animation:rise linear infinite;
+  }
+  @keyframes rise{
+    0%{transform:translateY(0) translateX(0) scale(.8);opacity:0}
+    10%{opacity:.9}
+    50%{transform:translateY(-55vh) translateX(18px) scale(1)}
+    90%{opacity:.8}
+    100%{transform:translateY(-108vh) translateX(-12px) scale(1.15);opacity:0}
+  }
+
+  /* 鱼 */
+  .fish-wrap{
+    position:absolute;left:50%;top:50%;width:min(300px,52vw);
+    transform:translate(-50%,-50%);
+    transition:transform 3.2s cubic-bezier(.42,0,.28,1);
+    will-change:transform;z-index:5;
+  }
+  .fish-bob{animation:bob 4.5s ease-in-out infinite}
+  @keyframes bob{
+    0%,100%{transform:translateY(-10px) rotate(-2.5deg)}
+    50%{transform:translateY(10px) rotate(2.5deg)}
+  }
+  .fish{width:100%;height:auto;display:block;filter:drop-shadow(0 12px 22px rgba(0,0,0,.35))}
+  .tail{transform-origin:78% 50%;animation:wag .75s ease-in-out infinite alternate}
+  @keyframes wag{from{transform:rotate(-9deg)}to{transform:rotate(9deg)}}
+  .fin{transform-origin:60% 90%;animation:fin 1.6s ease-in-out infinite alternate}
+  @keyframes fin{from{transform:rotate(-4deg)}to{transform:rotate(7deg)}}
+  .eye{transform-origin:262px 84px;animation:blink 5.5s infinite}
+  @keyframes blink{0%,94%,100%{transform:scaleY(1)}97%{transform:scaleY(.1)}}
+
+  /* 海床 + 水草 */
+  .seabed{position:absolute;left:0;right:0;bottom:0;height:30vh;pointer-events:none}
+  .sand{
+    position:absolute;left:-6%;right:-6%;bottom:-8vh;height:32vh;
+    border-radius:50% 50% 0 0/70% 70% 0 0;
+    background:linear-gradient(180deg,#2b5f7a,#12354d);opacity:.85;
+  }
+  .weed{
+    position:absolute;bottom:2vh;width:14px;border-radius:50% 50% 40% 40%;
+    background:linear-gradient(180deg,#28a06a,#12634a);
+    transform-origin:bottom center;animation:sway 3.4s ease-in-out infinite alternate;
+  }
+  @keyframes sway{from{transform:rotate(-10deg) scaleY(1)}to{transform:rotate(10deg) scaleY(1.08)}}
+
+  /* 文字 */
+  .tip{
+    position:absolute;top:22px;left:0;right:0;text-align:center;color:#bfe9ff;
+    font-size:clamp(11px,1.6vw,13px);letter-spacing:.16em;opacity:.6;
+    z-index:10;pointer-events:none;animation:tipfade 6s ease-in-out infinite;
+  }
+  @keyframes tipfade{0%,100%{opacity:.3}50%{opacity:.72}}
+  .hud{
+    position:absolute;left:0;right:0;bottom:4vh;text-align:center;color:#dff4ff;
+    z-index:10;pointer-events:none;
+  }
+  .hud h1{
+    font-size:clamp(22px,4.4vw,40px);font-weight:800;letter-spacing:.14em;
+    text-shadow:0 0 22px rgba(120,220,255,.6),0 3px 12px rgba(0,0,0,.5);
+  }
+  .hud p{margin-top:10px;font-size:clamp(11px,1.7vw,14px);letter-spacing:.22em;opacity:.7}
+
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none!important;transition:none!important}
+  }
+</style>
+</head>
+<body>
+<div class="ocean" id="ocean">
+  <div class="surface"></div>
+  <div class="rays">
+    <div class="ray"></div><div class="ray"></div><div class="ray"></div><div class="ray"></div>
+  </div>
+
+  <div class="fish-wrap" id="fish">
+    <div class="fish-bob">
+      <svg class="fish" viewBox="0 0 320 200" role="img" aria-label="大肥鱼">
+        <defs>
+          <radialGradient id="bodyGrad" cx="38%" cy="34%" r="80%">
+            <stop offset="0%" stop-color="#ffd79a"/>
+            <stop offset="45%" stop-color="#ffb347"/>
+            <stop offset="100%" stop-color="#ef7d1a"/>
+          </radialGradient>
+          <linearGradient id="tailGrad" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stop-color="#ff9f2e"/>
+            <stop offset="100%" stop-color="#f0720d"/>
+          </linearGradient>
+        </defs>
+
+        <!-- 尾巴 -->
+        <g class="tail">
+          <path d="M96 100 C58 62 22 52 12 74 C30 96 30 104 12 126 C22 148 58 138 96 100 Z"
+                fill="url(#tailGrad)"/>
+          <path d="M92 100 C66 76 40 68 30 80 M92 100 C66 124 40 132 30 120"
+                stroke="#ffd79a" stroke-width="3" fill="none" opacity=".45" stroke-linecap="round"/>
+        </g>
+
+        <!-- 背鳍 -->
+        <path class="fin" d="M148 40 C168 8 210 6 232 34 C210 34 176 40 148 40 Z" fill="#f58a1f"/>
+
+        <!-- 身体 -->
+        <ellipse cx="186" cy="102" rx="96" ry="62" fill="url(#bodyGrad)"/>
+
+        <!-- 肚皮 -->
+        <path d="M110 128 C150 176 240 176 282 126 C240 158 152 158 110 128 Z"
+              fill="#ffe6b8" opacity=".8"/>
+
+        <!-- 胸鳍 -->
+        <path class="fin" d="M196 130 C214 152 244 158 262 142 C240 138 214 130 196 130 Z"
+              fill="#f58a1f" opacity=".9"/>
+
+        <!-- 鳃线 -->
+        <path d="M248 58 C236 96 236 112 250 148" stroke="#e0781a" stroke-width="4"
+              fill="none" opacity=".4" stroke-linecap="round"/>
+
+        <!-- 嘴 -->
+        <path d="M280 104 C288 100 292 106 286 112" stroke="#d96a12" stroke-width="5"
+              fill="none" stroke-linecap="round"/>
+
+        <!-- 眼睛 -->
+        <g class="eye">
+          <circle cx="262" cy="84" r="17" fill="#fff"/>
+          <circle cx="267" cy="86" r="9.5" fill="#20303f"/>
+          <circle cx="271" cy="82" r="3.4" fill="#fff"/>
+        </g>
+
+        <!-- 腮红 -->
+        <ellipse cx="228" cy="122" rx="15" ry="9" fill="#ff8f7a" opacity=".4"/>
+      </svg>
+    </div>
+  </div>
+
+  <div class="seabed"><div class="sand"></div></div>
+
+  <div class="tip">点一下水里，鱼会游过去</div>
+  <div class="hud">
+    <h1>大 肥 鱼</h1>
+    <p>2026 · 一直在游</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  var ocean  = document.getElementById('ocean');
+  var fish   = document.getElementById('fish');
+  var busy   = false;
+
+  /* ---- 气泡 ---- */
+  function spawnBubble(){
+    var b = document.createElement('div');
+    var size = 6 + Math.random()*22;
+    var dur  = 7 + Math.random()*9;
+    b.className = 'bubble';
+    b.style.width  = size + 'px';
+    b.style.height = size + 'px';
+    b.style.left   = (Math.random()*100) + '%';
+    b.style.animationDuration = dur + 's';
+    b.style.animationDelay = (Math.random()*-dur) + 's';
+    ocean.appendChild(b);
+    setTimeout(function(){ b.remove(); }, dur*1000 + 2000);
+  }
+  for (var i=0;i<18;i++) spawnBubble();
+  setInterval(spawnBubble, 620);
+
+  /* ---- 水草 ---- */
+  var seabed = document.querySelector('.seabed');
+  for (var w=0; w<14; w++){
+    var weed = document.createElement('div');
+    weed.className = 'weed';
+    weed.style.height = (40 + Math.random()*110) + 'px';
+    weed.style.left   = (2 + Math.random()*96) + '%';
+    weed.style.animationDelay    = (Math.random()*-3.4) + 's';
+    weed.style.animationDuration = (2.8 + Math.random()*2.4) + 's';
+    weed.style.opacity = 0.45 + Math.random()*0.4;
+    seabed.appendChild(weed);
+  }
+
+  /* ---- 点击游过去 ---- */
+  function swimTo(x, y){
+    if (busy) return;
+    busy = true;
+    var dir = (x < window.innerWidth / 2) ? -1 : 1;
+    fish.style.transform =
+      'translate(-50%,-50%) translate(' + (x - window.innerWidth/2) + 'px,' +
+      (y - window.innerHeight/2) + 'px) scaleX(' + dir + ')';
+    setTimeout(function(){ busy = false; }, 3300);
+  }
+
+  ocean.addEventListener('click', function(e){ swimTo(e.clientX, e.clientY); });
+  ocean.addEventListener('touchstart', function(e){
+    var t = e.touches[0];
+    if (t) swimTo(t.clientX, t.clientY);
+  }, {passive:true});
+
+  /* ---- 开场先自己游两下 ---- */
+  setTimeout(function(){ swimTo(window.innerWidth*0.28, window.innerHeight*0.42); }, 900);
+  setTimeout(function(){ swimTo(window.innerWidth*0.72, window.innerHeight*0.60); }, 5200);
+})();
+</script>
+</body>
+</html>
